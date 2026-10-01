@@ -1,0 +1,6 @@
+{
+  "name": "LubeFlow Pro - Mobile Oil Inventory & POS System",
+  "description": "Professional Mobile Oil Inventory, Sales, Purchase & Billing Management System with offline IndexedDB, multi-unit conversions (Cotton, Bottle, Gallon), camera barcode scanning, PDF invoices, and WhatsApp sharing.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
