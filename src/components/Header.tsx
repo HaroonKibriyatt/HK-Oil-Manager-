@@ -11,6 +11,7 @@ export const Header: React.FC = () => {
     lowStockCount,
     outOfStockCount,
     lockApp,
+    openDownloadModal,
   } = useApp();
 
   const getTitle = () => {
@@ -88,6 +89,16 @@ export const Header: React.FC = () => {
           >
             <span className="text-sm">📷</span>
             <span className="hidden xs:inline">Scan</span>
+          </button>
+
+          {/* Download App (GitHub Live URL) Button */}
+          <button
+            onClick={openDownloadModal}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+            title="Download Android APK from GitHub"
+          >
+            <span className="text-sm">📱</span>
+            <span className="hidden sm:inline">Get App</span>
           </button>
 
           {/* Quick POS Button */}

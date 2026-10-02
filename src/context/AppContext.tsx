@@ -71,6 +71,11 @@ interface AppContextType {
   openInvoiceModal: (sale: Sale) => void;
   closeInvoiceModal: () => void;
   
+  // Download Android App Modal
+  isDownloadModalOpen: boolean;
+  openDownloadModal: () => void;
+  closeDownloadModal: () => void;
+  
   // Quick POS product trigger
   quickPosProduct: Product | null;
   setQuickPosProduct: (product: Product | null) => void;
@@ -111,6 +116,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Invoice viewer modal
   const [selectedInvoice, setSelectedInvoice] = useState<Sale | null>(null);
   const [quickPosProduct, setQuickPosProduct] = useState<Product | null>(null);
+
+  // Download Android App modal
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const openDownloadModal = useCallback(() => setIsDownloadModalOpen(true), []);
+  const closeDownloadModal = useCallback(() => setIsDownloadModalOpen(false), []);
 
   // Toast notifications
   const [toasts, setToasts] = useState<ToastInfo[]>([]);
@@ -326,7 +336,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
         </div>
-        <h1 className="text-xl font-bold tracking-tight">LubeFlow Pro</h1>
+        <h1 className="text-xl font-bold tracking-tight">HK OIL MANAGER</h1>
         <p className="text-slate-400 text-xs mt-1">Initializing local offline database...</p>
         <button
           type="button"
@@ -372,6 +382,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectedInvoice,
         openInvoiceModal,
         closeInvoiceModal,
+        isDownloadModalOpen,
+        openDownloadModal,
+        closeDownloadModal,
         quickPosProduct,
         setQuickPosProduct,
         lowStockCount,

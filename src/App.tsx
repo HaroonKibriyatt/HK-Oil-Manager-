@@ -6,6 +6,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { BarcodeGeneratorModal } from './components/BarcodeGeneratorModal';
 import { InvoiceModal } from './components/InvoiceModal';
+import { DownloadAppModal } from './components/DownloadAppModal';
 
 import { DashboardView } from './views/DashboardView';
 import { PosSalesView } from './views/PosSalesView';
@@ -99,6 +100,9 @@ const MainLayout: React.FC = () => {
       {selectedInvoice && (
         <InvoiceModal sale={selectedInvoice} onClose={closeInvoiceModal} />
       )}
+
+      {/* Download Android App Modal (GitHub Live Download) */}
+      <DownloadAppModal />
     </div>
   );
 };

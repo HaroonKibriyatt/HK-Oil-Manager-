@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export const BottomNav: React.FC = () => {
-  const { activeTab, setActiveTab } = useApp();
+  const { activeTab, setActiveTab, openDownloadModal } = useApp();
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   const mainTabs = [
@@ -63,6 +63,7 @@ export const BottomNav: React.FC = () => {
     { id: 'reports', label: 'Reports & Analytics', icon: '📊', desc: 'Profit, sales & PDF statements' },
     { id: 'closing', label: 'Daily Cash Closing', icon: '🔒', desc: 'Day-end cash drawer tally' },
     { id: 'settings', label: 'Settings & Backup', icon: '⚙️', desc: 'Shop profile, units & PIN' },
+    { id: 'download_app', label: 'Download Android APK', icon: '📱', desc: 'Direct GitHub live download' },
   ];
 
   return (
@@ -87,7 +88,11 @@ export const BottomNav: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => {
-                    setActiveTab(item.id);
+                    if (item.id === 'download_app') {
+                      openDownloadModal();
+                    } else {
+                      setActiveTab(item.id);
+                    }
                     setIsMoreMenuOpen(false);
                   }}
                   className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition-all ${

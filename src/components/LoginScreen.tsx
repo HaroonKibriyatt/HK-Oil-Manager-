@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { safeStorage } from '../utils/safeStorage';
+import { DownloadAppModal } from './DownloadAppModal';
 
 interface Props {
   onLoginSuccess?: () => void;
 }
 
 export const LoginScreen: React.FC<Props> = () => {
-  const { settings, login, updateSettings, showToast } = useApp();
+  const { settings, login, updateSettings, showToast, openDownloadModal } = useApp();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
