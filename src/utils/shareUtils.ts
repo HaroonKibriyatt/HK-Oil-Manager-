@@ -69,8 +69,13 @@ export function shareViaWhatsApp(sale: Sale, settings: BusinessSettings) {
 /**
  * Native Android Web Share with PDF File or Text Fallback
  */
-export async function shareInvoicePdf(sale: Sale, settings: BusinessSettings, isThermal = false): Promise<boolean> {
-  const doc = generateSaleInvoicePdf(sale, settings, isThermal);
+export async function shareInvoicePdf(
+  sale: Sale,
+  settings: BusinessSettings,
+  isThermal = false,
+  qrCodeUrl?: string
+): Promise<boolean> {
+  const doc = generateSaleInvoicePdf(sale, settings, isThermal, qrCodeUrl);
   const pdfBlob = doc.output('blob');
   const fileName = `${sale.invoiceNumber}.pdf`;
   const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
@@ -105,6 +110,55 @@ export async function shareInvoicePdf(sale: Sale, settings: BusinessSettings, is
   // Fallback to WhatsApp URL
   shareViaWhatsApp(sale, settings);
   return true;
+}
+
+/**
+ * Specifically generate and share A4 PDF Bill with QR Code directly via WhatsApp
+ */
+export async function shareA4PdfViaWhatsApp(
+  sale: Sale,
+  settings: BusinessSettings,
+  qrCodeUrl?: string
+): Promise<{ success: boolean; method: 'native_file' | 'download_and_whatsapp' }> {
+  const doc = generateSaleInvoicePdf(sale, settings, false, qrCodeUrl);
+  const pdfBlob = doc.output('blob');
+  const fileName = `${sale.invoiceNumber}_A4_Bill.pdf`;
+  const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+  // On Mobile / Android / Capacitor, native share can send the actual PDF file straight to WhatsApp
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: `A4 Bill ${sale.invoiceNumber} - ${settings.businessName}`,
+        text: `Official A4 Bill #${sale.invoiceNumber} (QR Verified)\nCustomer: ${sale.customerName}\nTotal: ${formatCurrency(sale.grandTotal, settings.currencySymbol)}`,
+        files: [file],
+      });
+      return { success: true, method: 'native_file' };
+    } catch (err: any) {
+      if (err.name === 'AbortError') return { success: false, method: 'native_file' };
+      console.warn('Native file share failed, falling back to download + whatsapp', err);
+    }
+  }
+
+  // Fallback for browsers without direct file sharing:
+  // 1. Download the A4 PDF with QR code
+  doc.save(fileName);
+
+  // 2. Open WhatsApp prefilled with bill details
+  const text =
+    formatWhatsAppInvoiceText(sale, settings) +
+    `\n\n📄 *Official A4 PDF Bill with QR Code downloaded to device.*`;
+  const encodedText = encodeURIComponent(text);
+  let cleanPhone = sale.customerPhone ? sale.customerPhone.replace(/[^0-9]/g, '') : '';
+  if (cleanPhone.startsWith('03')) cleanPhone = '92' + cleanPhone.substring(1);
+
+  if (cleanPhone.length >= 10) {
+    window.open(`https://wa.me/${cleanPhone}?text=${encodedText}`, '_blank');
+  } else {
+    window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
+  }
+
+  return { success: true, method: 'download_and_whatsapp' };
 }
 
 /**

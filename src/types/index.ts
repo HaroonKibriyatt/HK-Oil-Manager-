@@ -283,6 +283,9 @@ export interface BusinessSettings {
   rememberMeUsername?: string;
   isSetupCompleted: boolean;
   lastBackupDate?: string;
+  backupGmailId?: string;
+  lastBackupSize?: string;
+  backupFrequency?: 'daily' | 'weekly' | 'manual';
   weekendAlertDay: string; // e.g. 'Saturday', 'Sunday', 'Friday'
   weekendAlertEnabled: boolean;
   language: 'en';

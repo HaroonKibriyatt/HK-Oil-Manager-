@@ -230,6 +230,10 @@ export const defaultSettings: BusinessSettings = {
   isSetupCompleted: true,
   weekendAlertDay: 'Saturday',
   weekendAlertEnabled: true,
+  backupGmailId: 'haroonkibriyatt@gmail.com',
+  lastBackupDate: '',
+  lastBackupSize: '',
+  backupFrequency: 'daily',
   language: 'en',
   theme: 'light',
 };
@@ -1041,7 +1045,7 @@ export async function exportDatabaseBackup(): Promise<string> {
   const db = await getDB();
   const backup = {
     version: DB_VERSION,
-    appName: 'LubeFlow Pro',
+    appName: 'HK Oil Manager',
     exportedAt: new Date().toISOString(),
     products: await db.getAll('products'),
     price_history: await db.getAll('price_history'),

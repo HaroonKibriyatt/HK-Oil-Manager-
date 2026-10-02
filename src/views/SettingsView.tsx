@@ -7,6 +7,7 @@ import {
   clearAllDatabaseData,
   seedInitialDemoData,
 } from '../db/indexedDb';
+import { sendBackupToGmail, createFullBackupPackage } from '../utils/backupUtils';
 
 export const SettingsView: React.FC = () => {
   const { settings, updateSettings, resetToCleanData, refreshAllData, showToast } = useApp();
@@ -18,6 +19,10 @@ export const SettingsView: React.FC = () => {
   const [whatsapp, setWhatsapp] = useState(settings.whatsapp);
   const [address, setAddress] = useState(settings.address);
   const [email, setEmail] = useState(settings.email);
+  const [backupGmailId, setBackupGmailId] = useState(
+    settings.backupGmailId || settings.email || 'haroonkibriyatt@gmail.com'
+  );
+  const [isBackingUp, setIsBackingUp] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState(settings.currencySymbol);
   const [invoicePrefix, setInvoicePrefix] = useState(settings.invoicePrefix);
   const [purchasePrefix, setPurchasePrefix] = useState(settings.purchasePrefix);
@@ -63,6 +68,7 @@ export const SettingsView: React.FC = () => {
         defaultLowStockThreshold,
         weekendAlertDay,
         weekendAlertEnabled,
+        backupGmailId,
         isPinAuthEnabled,
         pinCode: newPin,
       });
@@ -71,6 +77,48 @@ export const SettingsView: React.FC = () => {
       showToast('Failed to save settings', 'error');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // WhatsApp-Style Full Database Backup to Gmail ID
+  const handleBackupToGmail = async () => {
+    setIsBackingUp(true);
+    try {
+      const res = await sendBackupToGmail(backupGmailId, settings);
+      const pkg = await createFullBackupPackage();
+      const now = new Date().toISOString();
+      await updateSettings({
+        backupGmailId,
+        lastBackupDate: now,
+        lastBackupSize: pkg.sizeKb,
+      });
+      if (res.method === 'native_share') {
+        showToast('Choose Gmail or Google Drive to complete backup save', 'info');
+      } else {
+        showToast(`Backup downloaded & Gmail pre-addressed to ${backupGmailId}!`, 'success');
+      }
+    } catch (err: any) {
+      showToast('Backup to Gmail failed', 'error');
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  // Save Backup to Google Drive
+  const handleSaveToGoogleDrive = async () => {
+    try {
+      const pkg = await createFullBackupPackage();
+      const blob = new Blob([pkg.jsonContent], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = pkg.fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      window.open('https://drive.google.com/drive/u/0/my-drive', '_blank');
+      showToast('Backup file downloaded! Open Google Drive to upload and keep safe.', 'success');
+    } catch (err) {
+      showToast('Could not prepare Google Drive backup', 'error');
     }
   };
 
@@ -371,49 +419,144 @@ export const SettingsView: React.FC = () => {
         </div>
       </form>
 
-      {/* Database Backup & Restore (PRD Section 34) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xs space-y-4">
-        <div className="border-b border-slate-100 dark:border-slate-800 pb-2">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-            4. Offline Database Backup & Restore
-          </h3>
-          <p className="text-xs text-slate-500">
-            Export a full encrypted backup of all your products, sales, customers, and stock history.
-          </p>
+      {/* Google Account & WhatsApp-Style Gmail Cloud Backup */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xs space-y-5">
+        <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">☁️</span>
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                4. Google Account (Gmail) & Cloud Backup
+              </h3>
+              <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+                WhatsApp Style
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Back up all your business products, stock, sales, expenses, and closings to your Google Account / Gmail ID.
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-3">
+        {/* WhatsApp-Style Backup Info Card */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/20 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white text-2xl shadow-md shadow-emerald-600/20 shrink-0">
+                <span>📧</span>
+              </div>
+              <div className="overflow-hidden">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">
+                  Google Account / Gmail ID
+                </span>
+                <span className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white truncate block">
+                  {backupGmailId}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-left sm:text-right flex flex-row sm:flex-col justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-emerald-500/10">
+              <span className="text-[11px] text-slate-500 block">Last Backup:</span>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {settings.lastBackupDate
+                  ? new Date(settings.lastBackupDate).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : 'Never'}
+              </span>
+              {settings.lastBackupSize && (
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
+                  Size: {settings.lastBackupSize}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Gmail Input Configuration */}
+          <div className="pt-2 border-t border-emerald-500/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+              Backup Gmail Address:
+            </label>
+            <input
+              type="email"
+              value={backupGmailId}
+              onChange={(e) => setBackupGmailId(e.target.value)}
+              placeholder="e.g. haroonkibriyatt@gmail.com"
+              className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            />
+          </div>
+
+          {/* Primary Action Button: Backup to Gmail ID Now */}
+          <button
+            type="button"
+            onClick={handleBackupToGmail}
+            disabled={isBackingUp}
+            className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs sm:text-sm font-extrabold shadow-md shadow-emerald-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>{isBackingUp ? '⏳' : '☁️'}</span>
+            <span>{isBackingUp ? 'Preparing Backup...' : 'Back Up to Gmail ID Now'}</span>
+            <span className="bg-emerald-950/40 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
+              Full Record
+            </span>
+          </button>
+        </div>
+
+        {/* Secondary Backup & Restore Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          {/* Save to Google Drive */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-2.5">
             <div>
-              <h4 className="font-bold text-xs text-slate-900 dark:text-white">
-                Download Database Backup File
+              <h4 className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>📁</span> Google Drive
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Save an offline JSON snapshot file to your phone or Google Drive.
+                Download file & upload directly to your Google Drive account.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveToGoogleDrive}
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            >
+              Save to Drive
+            </button>
+          </div>
+
+          {/* Offline JSON Download */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-2.5">
+            <div>
+              <h4 className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>💾</span> Download JSON
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Save an offline JSON snapshot file to this device's storage.
               </p>
             </div>
             <button
               type="button"
               onClick={handleExportBackup}
-              className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
             >
-              <span>💾</span>
-              <span>Backup Database Now</span>
+              Download File
             </button>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-3">
+          {/* Restore From Backup */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-2.5">
             <div>
-              <h4 className="font-bold text-xs text-slate-900 dark:text-white">
-                Restore From Backup File
+              <h4 className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>📂</span> Restore Backup
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Select a previously saved .json backup file to restore.
+                Upload any previous backup JSON file to restore all records.
               </p>
             </div>
-            <label className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer text-center">
-              <span>📂</span>
-              <span>Choose Backup File</span>
+            <label className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer text-center">
+              <span>Choose File</span>
               <input
                 type="file"
                 accept=".json"

@@ -4,7 +4,7 @@ import { Sale } from '../types';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/conversions';
 import { generateSaleInvoicePdf } from '../utils/pdfGenerator';
-import { shareInvoicePdf, shareViaWhatsApp, printInvoiceDirectly } from '../utils/shareUtils';
+import { shareInvoicePdf, shareViaWhatsApp, printInvoiceDirectly, shareA4PdfViaWhatsApp } from '../utils/shareUtils';
 
 interface Props {
   sale: Sale;
@@ -19,19 +19,20 @@ export const InvoiceModal: React.FC<Props> = ({ sale, onClose }) => {
 
   useEffect(() => {
     if (sale.invoiceNumber) {
-      QRCode.toDataURL(sale.invoiceNumber, {
-        width: 140,
+      const qrPayload = `HK OIL MANAGER\nBill: ${sale.invoiceNumber}\nDate: ${new Date(sale.createdAt).toLocaleDateString('en-GB')}\nCustomer: ${sale.customerName}\nTotal: ${settings.currencySymbol} ${sale.grandTotal}\nStatus: ${sale.balanceAmount > 0 ? 'Balance ' + sale.balanceAmount : 'PAID'}`;
+      QRCode.toDataURL(qrPayload, {
+        width: 200,
         margin: 1,
         color: { dark: '#0f172a', light: '#ffffff' },
       })
         .then((url) => setQrCodeUrl(url))
         .catch(() => {});
     }
-  }, [sale.invoiceNumber]);
+  }, [sale.invoiceNumber, sale.customerName, sale.grandTotal, sale.balanceAmount, settings.currencySymbol]);
 
   const handleDownloadPdf = () => {
     try {
-      const doc = generateSaleInvoicePdf(sale, settings, isThermalView);
+      const doc = generateSaleInvoicePdf(sale, settings, isThermalView, qrCodeUrl);
       doc.save(`${sale.invoiceNumber}.pdf`);
       showToast(`Invoice PDF downloaded (${sale.invoiceNumber})`, 'success');
     } catch (e) {
@@ -46,7 +47,7 @@ export const InvoiceModal: React.FC<Props> = ({ sale, onClose }) => {
   const handleShareNative = async () => {
     setIsSharing(true);
     try {
-      await shareInvoicePdf(sale, settings, isThermalView);
+      await shareInvoicePdf(sale, settings, isThermalView, qrCodeUrl);
     } catch (err) {
       showToast('Share failed', 'error');
     } finally {
@@ -56,6 +57,22 @@ export const InvoiceModal: React.FC<Props> = ({ sale, onClose }) => {
 
   const handleWhatsApp = () => {
     shareViaWhatsApp(sale, settings);
+  };
+
+  const handleWhatsAppA4Pdf = async () => {
+    setIsSharing(true);
+    try {
+      const res = await shareA4PdfViaWhatsApp(sale, settings, qrCodeUrl);
+      if (res.method === 'native_file') {
+        showToast('Choose WhatsApp from share menu to send A4 PDF', 'info');
+      } else {
+        showToast('A4 PDF saved & WhatsApp opened', 'success');
+      }
+    } catch (e) {
+      showToast('Could not share A4 PDF', 'error');
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (
@@ -273,43 +290,59 @@ export const InvoiceModal: React.FC<Props> = ({ sale, onClose }) => {
         </div>
 
         {/* Action Buttons Bar */}
-        <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          {/* PDF Download */}
+        <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2.5">
+          {/* Primary Action: Send A4 PDF Bill with QR Code to WhatsApp */}
           <button
-            onClick={handleDownloadPdf}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors"
-          >
-            <span>📄</span>
-            <span>Download PDF</span>
-          </button>
-
-          {/* Print */}
-          <button
-            onClick={handlePrint}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors"
-          >
-            <span>🖨️</span>
-            <span>Print Bill</span>
-          </button>
-
-          {/* WhatsApp Direct Share (PRD Section 20) */}
-          <button
-            onClick={handleWhatsApp}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
-          >
-            <span>💬</span>
-            <span>WhatsApp</span>
-          </button>
-
-          {/* Android Web Share */}
-          <button
-            onClick={handleShareNative}
+            onClick={handleWhatsAppA4Pdf}
             disabled={isSharing}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs sm:text-sm font-extrabold shadow-md shadow-emerald-600/20 active:scale-[0.99] transition-all cursor-pointer"
           >
-            <span>📤</span>
-            <span>{isSharing ? 'Sharing...' : 'Share PDF'}</span>
+            <span className="text-base">💬</span>
+            <span>Send A4 Bill (PDF + QR Code) via WhatsApp</span>
+            <span className="bg-emerald-950/40 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide uppercase">
+              A4 Page
+            </span>
           </button>
+
+          {/* Secondary Buttons Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* PDF Download */}
+            <button
+              onClick={handleDownloadPdf}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors"
+            >
+              <span>📄</span>
+              <span>Download PDF</span>
+            </button>
+
+            {/* Print */}
+            <button
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors"
+            >
+              <span>🖨️</span>
+              <span>Print Bill</span>
+            </button>
+
+            {/* WhatsApp Text Only */}
+            <button
+              onClick={handleWhatsApp}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-bold transition-colors"
+            >
+              <span>💬</span>
+              <span>WhatsApp Text</span>
+            </button>
+
+            {/* Android / System Web Share */}
+            <button
+              onClick={handleShareNative}
+              disabled={isSharing}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+            >
+              <span>📤</span>
+              <span>{isSharing ? 'Sharing...' : 'Share PDF'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
