@@ -3,13 +3,16 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ command }) => {
+  const repo = process.env.GITHUB_REPOSITORY?.split('/')[1];
+  const base = command === 'serve' ? '/' : (repo ? `/${repo}/` : '/HK-Oil-Manager/');
+
   return {
-    base: './',
+    base,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {

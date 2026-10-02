@@ -33,7 +33,9 @@ jobs:
         run: npm ci || npm install --legacy-peer-deps
 
       - name: Build App
-        run: npm run build
+        run: |
+          npm run build
+          if [ ! -f ./dist/404.html ]; then cp ./dist/index.html ./dist/404.html; fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
