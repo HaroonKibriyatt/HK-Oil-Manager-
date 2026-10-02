@@ -1,0 +1,8 @@
+{
+	"appId": "com.hk.oilmanager",
+	"appName": "HK Oil Manager",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https"
+	}
+}

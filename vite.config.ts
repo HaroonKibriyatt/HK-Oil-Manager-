@@ -4,8 +4,10 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(({ command }) => {
+  const isAndroid = process.env.TARGET_PLATFORM === 'android' || process.env.CAPACITOR === 'true';
   const repo = process.env.GITHUB_REPOSITORY?.split('/')[1];
-  const base = command === 'serve' ? '/' : (repo ? `/${repo}/` : '/HK-Oil-Manager/');
+  // In development serve from '/'. In Android or relative builds use './'. In GitHub Pages use repository base or './'.
+  const base = command === 'serve' ? '/' : (isAndroid ? './' : (repo ? `/${repo}/` : './'));
 
   return {
     base,

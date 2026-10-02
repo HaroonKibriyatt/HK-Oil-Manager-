@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HK Oil Manager</string>
+    <string name="title_activity_main">HK Oil Manager</string>
+    <string name="package_name">com.hk.oilmanager</string>
+    <string name="custom_url_scheme">com.hk.oilmanager</string>
+</resources>
