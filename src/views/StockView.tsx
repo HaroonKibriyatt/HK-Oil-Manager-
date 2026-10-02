@@ -220,11 +220,11 @@ export const StockView: React.FC = () => {
                 <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="py-3 px-4 font-bold">Product</th>
-                    <th className="py-3 px-3 font-bold">Packaging</th>
-                    <th className="py-3 px-3 font-bold text-center">Available Units</th>
-                    <th className="py-3 px-3 font-bold text-right">Cost Rate</th>
+                    <th className="py-3 px-3 font-bold">Unit / Packaging</th>
+                    <th className="py-3 px-3 font-bold text-center">Available Stock</th>
+                    <th className="py-3 px-3 font-bold text-right">Purchase Price</th>
+                    <th className="py-3 px-3 font-bold text-right">Sale Price</th>
                     <th className="py-3 px-3 font-bold text-right">Total Cost</th>
-                    <th className="py-3 px-3 font-bold text-right">Total Retail</th>
                     <th className="py-3 px-4 font-bold text-center">Status</th>
                   </tr>
                 </thead>
@@ -233,7 +233,6 @@ export const StockView: React.FC = () => {
                     const isOut = p.currentStock <= 0;
                     const isLow = p.currentStock <= p.minStockAlert;
                     const costVal = p.currentStock * p.purchaseRate;
-                    const retailVal = p.currentStock * p.saleRate;
 
                     return (
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
@@ -247,7 +246,7 @@ export const StockView: React.FC = () => {
                         </td>
                         <td className="py-3 px-3">
                           <span className="font-semibold text-slate-700 dark:text-slate-300">
-                            {formatStockInUnits(p.currentStock, p.bottlesPerCotton, p.baseUnit)}
+                            {p.baseUnit} ({formatStockInUnits(p.currentStock, p.bottlesPerCotton, p.baseUnit)})
                           </span>
                         </td>
                         <td className="py-3 px-3 text-center font-mono font-bold">
@@ -256,11 +255,11 @@ export const StockView: React.FC = () => {
                         <td className="py-3 px-3 text-right font-mono text-slate-600 dark:text-slate-400">
                           {formatCurrency(p.purchaseRate, settings.currencySymbol)}
                         </td>
+                        <td className="py-3 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                          {formatCurrency(p.saleRate, settings.currencySymbol)}
+                        </td>
                         <td className="py-3 px-3 text-right font-mono font-semibold text-slate-900 dark:text-white">
                           {formatCurrency(costVal, settings.currencySymbol)}
-                        </td>
-                        <td className="py-3 px-3 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(retailVal, settings.currencySymbol)}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span

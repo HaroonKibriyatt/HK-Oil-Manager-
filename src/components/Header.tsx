@@ -38,9 +38,11 @@ export const Header: React.FC = () => {
       case 'settings':
         return 'System Settings';
       default:
-        return 'LubeFlow Pro';
+        return 'HK OIL MANAGER';
     }
   };
+
+  const { logout } = useApp();
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
@@ -50,17 +52,16 @@ export const Header: React.FC = () => {
           <div
             onClick={() => setActiveTab('dashboard')}
             className="cursor-pointer w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center font-black shadow-sm shrink-0"
+            title="HK OIL MANAGER Dashboard"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+            <span className="text-lg">🛢️</span>
           </div>
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight truncate">
-              {getTitle()}
+            <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight truncate font-mono">
+              HK OIL MANAGER
             </h1>
-            <p className="text-[11px] text-slate-500 truncate hidden xs:block">
-              {settings?.businessName || 'LubeFlow Pro'}
+            <p className="text-[11px] text-sky-600 dark:text-sky-400 font-semibold truncate hidden xs:block">
+              {getTitle()}
             </p>
           </div>
         </div>
@@ -86,17 +87,7 @@ export const Header: React.FC = () => {
             title="Scan QR Code or 1D Barcode"
           >
             <span className="text-sm">📷</span>
-            <span className="hidden xs:inline">QR / Barcode</span>
-          </button>
-
-          {/* QR & Barcode Generator */}
-          <button
-            onClick={() => openBarcodeGenerator(null)}
-            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs font-bold transition-all shadow-xs"
-            title="Generate & Print QR Stickers"
-          >
-            <span className="text-sm">🏷️</span>
-            <span className="hidden sm:inline">Labels</span>
+            <span className="hidden xs:inline">Scan</span>
           </button>
 
           {/* Quick POS Button */}
@@ -109,18 +100,17 @@ export const Header: React.FC = () => {
             </button>
           )}
 
-          {/* Lock App */}
-          {settings?.isPinAuthEnabled && (
-            <button
-              onClick={lockApp}
-              title="Lock Application"
-              className="w-9 h-9 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </button>
-          )}
+          {/* Logout Button */}
+          <button
+            onClick={logout}
+            title="Logout from HK OIL MANAGER"
+            className="px-2.5 py-1.5 rounded-xl text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/50 flex items-center gap-1 text-xs font-semibold transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span className="hidden sm:inline">Logout</span>
+          </button>
         </div>
       </div>
     </header>

@@ -540,7 +540,7 @@ export const BarcodeScannerModal: React.FC<Props> = ({
           {/* Fast Manual Search / Keyboard Entry */}
           <div className="pt-1">
             <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
-              Manual Barcode or QR Text Entry (دستی کوڈ درج کریں)
+              Manual Barcode or QR Text Entry
             </label>
             <div className="flex items-center gap-2">
               <input

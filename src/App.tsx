@@ -2,7 +2,7 @@ import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
-import { PinLockScreen } from './components/PinLockScreen';
+import { LoginScreen } from './components/LoginScreen';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { BarcodeGeneratorModal } from './components/BarcodeGeneratorModal';
 import { InvoiceModal } from './components/InvoiceModal';
@@ -34,7 +34,7 @@ const MainLayout: React.FC = () => {
   } = useApp();
 
   if (isLocked) {
-    return <PinLockScreen />;
+    return <LoginScreen />;
   }
 
   const renderActiveView = () => {

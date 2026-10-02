@@ -56,10 +56,10 @@ export const BottomNav: React.FC = () => {
   ];
 
   const moreMenuItems = [
-    { id: 'purchases', label: 'Purchases (Stock In)', icon: '📥', desc: 'Vendor orders & batch rates' },
-    { id: 'customers', label: 'Customers & Khata', icon: '👥', desc: 'Accounts, credit & balances' },
+    { id: 'purchases', label: 'Purchases (Incoming Stock)', icon: '📥', desc: 'Vendor orders & batch rates' },
+    { id: 'customers', label: 'Customers & Credit Ledger', icon: '👥', desc: 'Accounts, credit & balances' },
     { id: 'suppliers', label: 'Suppliers & Vendors', icon: '🏭', desc: 'Petroleum distributors & dues' },
-    { id: 'expenses', label: 'Daily Expenses', icon: '💸', desc: 'Shop rent, electricity & tea' },
+    { id: 'expenses', label: 'Daily Expenses', icon: '💸', desc: 'Shop rent, electricity & bills' },
     { id: 'reports', label: 'Reports & Analytics', icon: '📊', desc: 'Profit, sales & PDF statements' },
     { id: 'closing', label: 'Daily Cash Closing', icon: '🔒', desc: 'Day-end cash drawer tally' },
     { id: 'settings', label: 'Settings & Backup', icon: '⚙️', desc: 'Shop profile, units & PIN' },

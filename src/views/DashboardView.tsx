@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatStockInUnits } from '../utils/conversions';
-import { Customer, Supplier } from '../types';
+import { Customer } from '../types';
 
 export const DashboardView: React.FC = () => {
   const {
@@ -23,20 +23,19 @@ export const DashboardView: React.FC = () => {
 
   const currency = settings?.currencySymbol || 'Rs.';
 
-  // Weekend alert configuration
+  // Weekend alert day configuration
   const daysOfWeek = [
-    { en: 'Sunday', ur: 'اتوار (Sunday)' },
-    { en: 'Monday', ur: 'پیر (Monday)' },
-    { en: 'Tuesday', ur: 'منگل (Tuesday)' },
-    { en: 'Wednesday', ur: 'بدھ (Wednesday)' },
-    { en: 'Thursday', ur: 'جمعرات (Thursday)' },
-    { en: 'Friday', ur: 'جمعہ (Friday)' },
-    { en: 'Saturday', ur: 'ہفتہ (Saturday)' },
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
   ];
 
   const todayIndex = new Date().getDay();
-  const todayDayName = daysOfWeek[todayIndex].en;
-  const todayUrduName = daysOfWeek[todayIndex].ur;
+  const todayDayName = daysOfWeek[todayIndex];
 
   const configuredAlertDay = settings?.weekendAlertDay || 'Saturday';
   const isWeekendAlertToday = todayDayName.toLowerCase() === configuredAlertDay.toLowerCase();
@@ -44,7 +43,6 @@ export const DashboardView: React.FC = () => {
   // Manual toggle to view alert on demand
   const [showWeekendSection, setShowWeekendSection] = useState<boolean>(true);
   const [alertActiveTab, setAlertActiveTab] = useState<'collect' | 'pay'>('collect');
-  const [isChangingDay, setIsChangingDay] = useState(false);
 
   // Today metrics
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -69,12 +67,9 @@ export const DashboardView: React.FC = () => {
     [todaySales]
   );
 
-  const todayCashSales = useMemo(
-    () =>
-      todaySales
-        .filter((s) => s.paymentMethod === 'Cash')
-        .reduce((sum, s) => sum + (s.paidAmount || 0), 0),
-    [todaySales]
+  const todayPurchasesTotal = useMemo(
+    () => todayPurchases.reduce((sum, p) => sum + (p.netTotal || 0), 0),
+    [todayPurchases]
   );
 
   const todayCostOfGoods = useMemo(
@@ -97,7 +92,13 @@ export const DashboardView: React.FC = () => {
     [todayGrossProfit, todayExpensesTotal]
   );
 
-  // Total Receivables (Customers who owe us - لینی ہے)
+  // Total Stock Units
+  const totalStockUnits = useMemo(
+    () => products.reduce((sum, p) => sum + (p.currentStock || 0), 0),
+    [products]
+  );
+
+  // Total Receivables (Customers who owe business)
   const customersWhoOwe = useMemo(
     () => customers.filter((c) => c.currentBalance > 0),
     [customers]
@@ -108,7 +109,7 @@ export const DashboardView: React.FC = () => {
     [customersWhoOwe]
   );
 
-  // Total Payables (Suppliers we owe - دینی ہے)
+  // Total Payables (Suppliers business owes)
   const suppliersWeOwe = useMemo(
     () => suppliers.filter((s) => s.currentBalance > 0),
     [suppliers]
@@ -119,52 +120,53 @@ export const DashboardView: React.FC = () => {
     [suppliersWeOwe]
   );
 
-  // Inventory valuation
+  // Stock inventory valuation
   const inventoryCostValue = useMemo(
     () => products.reduce((sum, p) => sum + (p.currentStock || 0) * (p.purchaseRate || 0), 0),
     [products]
   );
 
-  // WhatsApp Reminder Sender
+  // WhatsApp Reminder Sender (English only)
   const sendWhatsAppReminder = (customer: Customer) => {
     const phone = customer.whatsapp || customer.phone;
     if (!phone) return;
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const text = encodeURIComponent(
-      `السلام علیکم ${customer.name} صاحب!\n${settings?.businessName || 'LubeFlow Pro'} کی طرف سے آپ کے کھاتے کی بقایا رقم ${currency} ${customer.currentBalance} کی ہفتہ وار ادائیگی کی یاد دہانی ہے۔ برائے مہربانی آج حساب کلیئر کر دیں۔\nشکریہ!\nرابطہ: ${settings?.phone || ''}`
+      `Hello ${customer.name},\nThis is a friendly weekend reminder from HK OIL MANAGER regarding your outstanding balance of ${currency} ${customer.currentBalance}. Please arrange payment at your earliest convenience.\nThank you!\nContact: ${settings?.phone || ''}`
     );
     window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
   };
 
   const handleUpdateAlertDay = async (day: string) => {
     await updateSettings({ weekendAlertDay: day });
-    setIsChangingDay(false);
   };
 
   return (
     <div className="space-y-5 pb-24 max-w-7xl mx-auto px-3 sm:px-6 pt-3 animate-in fade-in duration-150">
-      {/* Top Banner: Greeting, Live Date & Weekend Alert Status */}
+      {/* Top Branding Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-sky-950 to-indigo-950 text-white p-4 sm:p-6 shadow-xl border border-slate-800">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-sky-500/10 blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-semibold text-sky-300 uppercase tracking-wider">
-                {settings?.businessName || 'LubeFlow Pro'} · لائیو کاؤنٹر
+              <span className="text-xs font-bold text-sky-400 uppercase tracking-widest font-mono">
+                HK OIL MANAGER
               </span>
             </div>
-            <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight mt-0.5">
-              خوش آمدید! آئل انوینٹری و کھاتہ مینجمنٹ
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-0.5">
+              Dashboard Overview
             </h2>
             <p className="text-xs text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
-              <span>🗓️ آج کا دن: <strong className="text-white">{todayUrduName}</strong></span>
+              <span>Today: <strong className="text-white">{todayDayName}</strong></span>
               <span>·</span>
-              <span>تاريخ: {new Date().toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              <span>{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              <span>·</span>
+              <span className="text-emerald-400 font-medium">Offline-Ready System</span>
             </p>
           </div>
 
-          {/* Weekend Alert Badge & Selector */}
+          {/* Weekend Payment Alert Day Configuration */}
           <div className="flex items-center gap-2 bg-slate-800/80 backdrop-blur-md p-2 rounded-2xl border border-slate-700/80">
             <div className="text-right pr-1">
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
@@ -172,20 +174,23 @@ export const DashboardView: React.FC = () => {
               </div>
               <div className="text-xs font-extrabold text-amber-400">
                 {configuredAlertDay}
-                {isWeekendAlertToday && <span className="ml-1 text-[10px] bg-rose-600 text-white px-1.5 py-0.2 rounded font-bold">آج ہے!</span>}
+                {isWeekendAlertToday && (
+                  <span className="ml-1 text-[10px] bg-rose-600 text-white px-1.5 py-0.5 rounded font-bold">
+                    Active Today
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Quick Change Day Dropdown */}
             <select
               value={configuredAlertDay}
               onChange={(e) => handleUpdateAlertDay(e.target.value)}
-              className="bg-slate-900 text-sky-300 text-xs font-bold py-1.5 px-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-400 cursor-pointer"
+              className="bg-slate-900 text-sky-300 text-xs font-bold py-1.5 px-2.5 rounded-xl border border-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-400 cursor-pointer"
               title="Change Weekend Alert Day"
             >
-              {daysOfWeek.map((d) => (
-                <option key={d.en} value={d.en}>
-                  {d.ur}
+              {daysOfWeek.map((day) => (
+                <option key={day} value={day}>
+                  {day}
                 </option>
               ))}
             </select>
@@ -193,25 +198,25 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* FRESH DATABASE EMPTY STATE (when 0 products exist) */}
+      {/* FRESH ONBOARDING CALLOUT (When 0 products exist) */}
       {products.length === 0 && (
-        <div className="bg-gradient-to-br from-amber-500/10 via-sky-500/10 to-indigo-500/10 dark:from-slate-900/90 dark:to-slate-800/90 rounded-3xl p-5 sm:p-6 border-2 border-dashed border-amber-300 dark:border-amber-700/50 shadow-sm animate-in fade-in">
+        <div className="bg-gradient-to-br from-sky-500/10 via-indigo-500/10 to-emerald-500/10 dark:from-slate-900/90 dark:to-slate-800/90 rounded-3xl p-5 sm:p-6 border-2 border-dashed border-sky-400/50 shadow-sm animate-in fade-in">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-amber-500/30">
-                ✨
+              <div className="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-sky-600/30">
+                🛢️
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                    نیا اور صاف کھاتہ تیار ہے (Pristine Clean Start)
+                  <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                    Clean Database Ready
                   </span>
                 </div>
                 <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-1">
-                  آپ کی ہدایت پر تمام پرانا ڈیٹا، پراڈکٹس اور ریٹس مکمل ڈیلیٹ کر دیے گئے ہیں!
+                  Welcome to HK OIL MANAGER!
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 max-w-xl">
-                  اب آپ اپنے اسٹور کے تمام اصلی انجن آئل، فلٹرز، پیٹی/کاٹن اور گاہکوں کا کھاتہ خود اپنے مطابق درج کر سکتے ہیں۔
+                  Your oil inventory is fresh and empty. Start by adding your first engine oil, gallon, bottle, or filter.
                 </p>
               </div>
             </div>
@@ -221,53 +226,194 @@ export const DashboardView: React.FC = () => {
                 onClick={() => setActiveTab('products')}
                 className="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
               >
-                <span>➕</span>
-                <span>پہلا آئل پراڈکٹ شامل کریں (+ Add Product)</span>
+                <span>+</span>
+                <span>Add First Product</span>
               </button>
               <button
-                onClick={() => setActiveTab('customers')}
-                className="flex-1 sm:flex-none px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs"
+                onClick={() => openBarcodeScanner(() => {})}
+                className="flex-1 sm:flex-none px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs flex items-center justify-center gap-1"
               >
-                + نیا گاہک (Customer)
+                <span>📷</span>
+                <span>Scan Barcode</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* FEATURED: WEEKEND PAYMENT RECOVERY & DUE ALERT (ہفتہ وار ادھار وصولی و ادائیگی کاؤنٹر) */}
-      <div className={`rounded-3xl border transition-all duration-300 overflow-hidden shadow-lg ${
-        isWeekendAlertToday
-          ? 'bg-gradient-to-br from-amber-500/15 via-rose-500/10 to-indigo-500/15 dark:from-amber-950/40 dark:to-slate-900 border-amber-400 dark:border-amber-600/60 ring-2 ring-amber-400/30'
-          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-      }`}>
-        {/* Widget Header */}
+      {/* SECTION 5: PRIMARY PRD DASHBOARD CARDS */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5 px-1">
+          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+            Key Performance Indicators
+          </span>
+          <span className="text-[11px] text-slate-500">Live Statistics</span>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Card 1: Total Products */}
+          <div
+            onClick={() => setActiveTab('products')}
+            className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-sky-500/50 transition-colors"
+          >
+            <div className="flex items-center justify-between text-slate-500 mb-1">
+              <span className="text-xs font-semibold">Total Products</span>
+              <span className="text-base">📦</span>
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+              {products.length}
+            </div>
+            <p className="text-[11px] text-sky-600 font-medium mt-1">
+              Registered items
+            </p>
+          </div>
+
+          {/* Card 2: Current Stock */}
+          <div
+            onClick={() => setActiveTab('stock')}
+            className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-sky-500/50 transition-colors"
+          >
+            <div className="flex items-center justify-between text-slate-500 mb-1">
+              <span className="text-xs font-semibold">Current Stock</span>
+              <span className="text-base">🛢️</span>
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+              {totalStockUnits} <span className="text-xs font-normal text-slate-500">Units</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Valuation: {formatCurrency(inventoryCostValue, currency)}
+            </p>
+          </div>
+
+          {/* Card 3: Today's Sales */}
+          <div
+            onClick={() => setActiveTab('pos')}
+            className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-emerald-500/50 transition-colors"
+          >
+            <div className="flex items-center justify-between text-slate-500 mb-1">
+              <span className="text-xs font-semibold">Today's Sales</span>
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
+                {todaySales.length} Bills
+              </span>
+            </div>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+              {formatCurrency(todaySalesTotal, currency)}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Gross profit: +{formatCurrency(todayGrossProfit, currency)}
+            </p>
+          </div>
+
+          {/* Card 4: Today's Purchases */}
+          <div
+            onClick={() => setActiveTab('purchases')}
+            className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-indigo-500/50 transition-colors"
+          >
+            <div className="flex items-center justify-between text-slate-500 mb-1">
+              <span className="text-xs font-semibold">Today's Purchases</span>
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600">
+                {todayPurchases.length} Orders
+              </span>
+            </div>
+            <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono">
+              {formatCurrency(todayPurchasesTotal, currency)}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Incoming stock cost
+            </p>
+          </div>
+        </div>
+
+        {/* Second Row of KPIs: Expenses, Net Profit, Low Stock */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+          {/* Today's Expenses */}
+          <div
+            onClick={() => setActiveTab('expenses')}
+            className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-rose-500/50 transition-colors"
+          >
+            <div className="flex items-center justify-between text-slate-500 mb-1">
+              <span className="text-xs font-semibold">Today's Expenses</span>
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-600">
+                {todayExpenses.length} Entries
+              </span>
+            </div>
+            <div className="text-xl font-black text-rose-600 dark:text-rose-400 font-mono">
+              {formatCurrency(todayExpensesTotal, currency)}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Operating costs & bills
+            </p>
+          </div>
+
+          {/* Today's Net Profit */}
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-4 shadow-xs border border-slate-700/60">
+            <div className="flex items-center justify-between text-slate-300 mb-1">
+              <span className="text-xs font-semibold">Today's Net Profit</span>
+              <span className="text-xs font-bold text-sky-400">After Expenses</span>
+            </div>
+            <div className={`text-xl font-black font-mono ${todayNetProfit >= 0 ? 'text-sky-300' : 'text-rose-400'}`}>
+              {formatCurrency(todayNetProfit, currency)}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Sales - Cost of Goods - Expenses
+            </p>
+          </div>
+
+          {/* Low Stock Alert */}
+          <div
+            onClick={() => setActiveTab('stock')}
+            className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-amber-500/50 transition-colors"
+          >
+            <div className="flex items-center justify-between text-slate-500 mb-1">
+              <span className="text-xs font-semibold">Low Stock Products</span>
+              <span className="text-base">⚠️</span>
+            </div>
+            <div className={`text-xl font-black font-mono ${lowStockCount + outOfStockCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
+              {lowStockCount + outOfStockCount} <span className="text-xs font-normal text-slate-500">Products</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {lowStockCount > 0 ? `${lowStockCount} below minimum threshold` : 'Stock levels adequate'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* WEEKEND PAYMENT & DUE ALERT WIDGET */}
+      <div
+        className={`rounded-3xl border transition-all duration-300 overflow-hidden shadow-lg ${
+          isWeekendAlertToday
+            ? 'bg-gradient-to-br from-amber-500/15 via-rose-500/10 to-indigo-500/15 dark:from-amber-950/40 dark:to-slate-900 border-amber-400 dark:border-amber-600/60 ring-2 ring-amber-400/30'
+            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+        }`}
+      >
         <div className="px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80">
           <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm ${
-              isWeekendAlertToday
-                ? 'bg-gradient-to-tr from-amber-500 to-rose-500 text-white animate-bounce'
-                : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
-            }`}>
+            <div
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm ${
+                isWeekendAlertToday
+                  ? 'bg-gradient-to-tr from-amber-500 to-rose-500 text-white animate-bounce'
+                  : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+              }`}
+            >
               🚨
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-black text-slate-900 dark:text-white text-base">
-                  ہفتہ وار ادھار وصولی و ادائیگی الرٹ (Weekend Khata Alert)
+                  Weekend Payment & Due Clearance Alert
                 </h3>
                 {isWeekendAlertToday ? (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-extrabold uppercase animate-pulse">
-                    آج وصولی کا دن ہے!
+                    Alert Day Active
                   </span>
                 ) : (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold">
-                    مقررہ دن: {configuredAlertDay}
+                    Scheduled: {configuredAlertDay}
                   </span>
                 )}
               </div>
               <p className="text-xs text-slate-500">
-                ہر ویک اینڈ پر گاہکوں سے رقم وصول کرنے اور سپلائرز کو ادائیگی کی مکمل تفصیل
+                Track customer receivables to collect and supplier payables to settle
               </p>
             </div>
           </div>
@@ -283,7 +429,7 @@ export const DashboardView: React.FC = () => {
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
-                وصول کرنا ہے ({customersWhoOwe.length})
+                To Collect ({customersWhoOwe.length})
               </button>
               <button
                 onClick={() => setAlertActiveTab('pay')}
@@ -293,7 +439,7 @@ export const DashboardView: React.FC = () => {
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
-                ادا کرنا ہے ({suppliersWeOwe.length})
+                To Pay ({suppliersWeOwe.length})
               </button>
             </div>
 
@@ -301,79 +447,69 @@ export const DashboardView: React.FC = () => {
               onClick={() => setShowWeekendSection(!showWeekendSection)}
               className="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             >
-              {showWeekendSection ? 'چھپائیں ▲' : 'دیکھیں ▼'}
+              {showWeekendSection ? 'Hide ▲' : 'Show ▼'}
             </button>
           </div>
         </div>
 
-        {/* Content Body */}
         {showWeekendSection && (
           <div className="p-4 sm:p-5 space-y-4">
-            {/* Top Summaries */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Card 1: To Collect (وصول کرنی ہے) */}
-              <div className={`p-4 rounded-2xl border transition-all ${
-                alertActiveTab === 'collect'
-                  ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700/60 shadow-xs'
-                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800'
-              }`}>
+              {/* To Collect */}
+              <div
+                className={`p-4 rounded-2xl border transition-all ${
+                  alertActiveTab === 'collect'
+                    ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700/60 shadow-xs'
+                    : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800'
+                }`}
+              >
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  <span className="flex items-center gap-1.5">
-                    <span>📥</span>
-                    <span>گاہکوں سے کل وصول کرنا ہے (To Collect):</span>
-                  </span>
+                  <span>Customer Receivables (To Collect):</span>
                   <span className="font-bold text-amber-700 dark:text-amber-400">
-                    {customersWhoOwe.length} گاہک
+                    {customersWhoOwe.length} Customers
                   </span>
                 </div>
                 <div className="text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400 mt-1">
                   {formatCurrency(totalReceivables, currency)}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  مارکیٹ میں بقایا ادھار جو واپس آنا ہے
-                </p>
               </div>
 
-              {/* Card 2: To Pay (ادا کرنی ہے) */}
-              <div className={`p-4 rounded-2xl border transition-all ${
-                alertActiveTab === 'pay'
-                  ? 'bg-indigo-500/10 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700/60 shadow-xs'
-                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800'
-              }`}>
+              {/* To Pay */}
+              <div
+                className={`p-4 rounded-2xl border transition-all ${
+                  alertActiveTab === 'pay'
+                    ? 'bg-indigo-500/10 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700/60 shadow-xs'
+                    : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800'
+                }`}
+              >
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  <span className="flex items-center gap-1.5">
-                    <span>📤</span>
-                    <span>سپلائرز کو کل ادا کرنا ہے (To Pay):</span>
-                  </span>
+                  <span>Supplier Payables (To Pay):</span>
                   <span className="font-bold text-indigo-700 dark:text-indigo-400">
-                    {suppliersWeOwe.length} سپلائر
+                    {suppliersWeOwe.length} Suppliers
                   </span>
                 </div>
                 <div className="text-xl sm:text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400 mt-1">
                   {formatCurrency(totalPayables, currency)}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  کمپنی و آئل ایجنسیوں کا بقایا بل
-                </p>
               </div>
             </div>
 
-            {/* List Table: Either Customers to collect or Suppliers to pay */}
+            {/* List */}
             {alertActiveTab === 'collect' ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
-                  <span>گاہک کی تفصیل و بقایا رقم (Customer Dues):</span>
+                  <span>Customers with Pending Balance:</span>
                   <button
                     onClick={() => setActiveTab('customers')}
                     className="text-sky-600 dark:text-sky-400 hover:underline"
                   >
-                    مکمل کھاتہ دیکھیں →
+                    View All Accounts →
                   </button>
                 </div>
 
                 {customersWhoOwe.length === 0 ? (
                   <div className="p-6 text-center text-slate-400 text-xs bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    🎉 ماشاءاللہ! کسی گاہک کی طرف کوئی ادھار باقی نہیں ہے۔
+                    No outstanding customer balances. All accounts settled.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -390,28 +526,29 @@ export const DashboardView: React.FC = () => {
                             {c.phone || 'No phone'}
                           </p>
                           <div className="text-xs font-mono font-extrabold text-amber-600 dark:text-amber-400 mt-0.5">
-                            لینا ہے: {formatCurrency(c.currentBalance, currency)}
+                            Due: {formatCurrency(c.currentBalance, currency)}
                           </div>
                         </div>
 
-                        {/* WhatsApp Reminder Button */}
                         <div className="flex flex-col gap-1 shrink-0">
-                          {c.phone ? (
+                          {c.phone && (
                             <button
                               onClick={() => sendWhatsAppReminder(c)}
                               className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-2xs flex items-center gap-1 active:scale-95 transition-all"
                               title="Send WhatsApp Payment Reminder"
                             >
                               <span>📲</span>
-                              <span>یاد دہانی</span>
+                              <span>Remind</span>
                             </button>
-                          ) : null}
-                          <a
-                            href={`tel:${c.phone}`}
-                            className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-semibold text-center"
-                          >
-                            📞 کال
-                          </a>
+                          )}
+                          {c.phone && (
+                            <a
+                              href={`tel:${c.phone}`}
+                              className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-semibold text-center"
+                            >
+                              Call
+                            </a>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -421,18 +558,18 @@ export const DashboardView: React.FC = () => {
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
-                  <span>سپلائرز کی واجب الادا رقم (Suppliers to Pay):</span>
+                  <span>Suppliers with Pending Payment:</span>
                   <button
                     onClick={() => setActiveTab('suppliers')}
                     className="text-sky-600 dark:text-sky-400 hover:underline"
                   >
-                    سپلائرز لسٹ دیکھیں →
+                    View Suppliers →
                   </button>
                 </div>
 
                 {suppliersWeOwe.length === 0 ? (
                   <div className="p-6 text-center text-slate-400 text-xs bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    🎉 کسی سپلائر کا بل بقایا نہیں ہے۔ تمام ادائیگیاں کلیئر ہیں!
+                    No supplier dues. All vendor accounts are clear.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -449,7 +586,7 @@ export const DashboardView: React.FC = () => {
                             {s.phone}
                           </p>
                           <div className="text-xs font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-0.5">
-                            ادا کرنا ہے: {formatCurrency(s.currentBalance, currency)}
+                            Payable: {formatCurrency(s.currentBalance, currency)}
                           </div>
                         </div>
 
@@ -457,7 +594,7 @@ export const DashboardView: React.FC = () => {
                           onClick={() => setActiveTab('suppliers')}
                           className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-2xs"
                         >
-                          ادائیگی کریں
+                          Pay
                         </button>
                       </div>
                     ))}
@@ -469,11 +606,11 @@ export const DashboardView: React.FC = () => {
         )}
       </div>
 
-      {/* QUICK SPEED DIAL ACTION GRID */}
+      {/* QUICK ACTIONS SPEED DIAL */}
       <div>
         <div className="flex items-center justify-between mb-2 px-1">
           <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-            فوری شارٹ کٹس (Quick Actions)
+            Quick Actions
           </span>
         </div>
 
@@ -482,225 +619,104 @@ export const DashboardView: React.FC = () => {
           <button
             onClick={() => setActiveTab('pos')}
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95 group"
+            title="Start New Sale (POS)"
           >
             <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🛍️</span>
-            <span className="text-[11px] font-bold">نئی سیل</span>
+            <span className="text-[11px] font-bold">New Sale</span>
           </button>
 
-          {/* QR & Barcode Scanner */}
+          {/* Barcode Scanner */}
           <button
             onClick={() => openBarcodeScanner(() => {})}
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-all active:scale-95 group"
-            title="Scan QR Code or 1D Barcode"
+            title="Scan QR Code or Barcode"
           >
             <span className="text-xl mb-1 group-hover:scale-110 transition-transform">📷</span>
-            <span className="text-[11px] font-bold">اسکینر QR</span>
+            <span className="text-[11px] font-bold">Scan</span>
           </button>
 
-          {/* QR & Barcode Generator */}
+          {/* Print Labels */}
           <button
             onClick={() => openBarcodeGenerator(null)}
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all active:scale-95 group"
-            title="Generate Printable Stickers"
+            title="Print Barcode & QR Labels"
           >
             <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🏷️</span>
-            <span className="text-[11px] font-bold">اسٹیکر لیبل</span>
+            <span className="text-[11px] font-bold">Labels</span>
           </button>
 
           {/* Add Product */}
           <button
             onClick={() => setActiveTab('products')}
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-all active:scale-95 group"
+            title="Manage Product Catalog"
           >
             <span className="text-xl mb-1 group-hover:scale-110 transition-transform">📦</span>
-            <span className="text-[11px] font-bold">نیا آئل</span>
+            <span className="text-[11px] font-bold">Products</span>
           </button>
 
-          {/* Purchases */}
+          {/* Record Purchase */}
           <button
             onClick={() => setActiveTab('purchases')}
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-all active:scale-95 group"
+            title="Incoming Stock & Purchases"
           >
             <span className="text-xl mb-1 group-hover:scale-110 transition-transform">📥</span>
-            <span className="text-[11px] font-bold">خریداری</span>
+            <span className="text-[11px] font-bold">Purchase</span>
           </button>
 
-          {/* Customers & Khata */}
+          {/* Customer Accounts */}
           <button
             onClick={() => setActiveTab('customers')}
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-all active:scale-95 group"
+            title="Customer Accounts & Credit Ledger"
           >
             <span className="text-xl mb-1 group-hover:scale-110 transition-transform">👥</span>
-            <span className="text-[11px] font-bold">گاہک کھاتہ</span>
+            <span className="text-[11px] font-bold">Customers</span>
           </button>
 
           {/* Expenses */}
           <button
             onClick={() => setActiveTab('expenses')}
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all active:scale-95 group"
+            title="Track Daily Expenses"
           >
             <span className="text-xl mb-1 group-hover:scale-110 transition-transform">💸</span>
-            <span className="text-[11px] font-bold">دکان خرچہ</span>
+            <span className="text-[11px] font-bold">Expenses</span>
           </button>
 
           {/* Daily Closing */}
           <button
             onClick={() => setActiveTab('closing')}
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-all active:scale-95 group"
+            title="Daily Cash Drawer Closing"
           >
             <span className="text-xl mb-1 group-hover:scale-110 transition-transform">📊</span>
-            <span className="text-[11px] font-bold">کھاتہ بند</span>
+            <span className="text-[11px] font-bold">Closing</span>
           </button>
         </div>
       </div>
 
-      {/* CORE FINANCIAL BENTO GRID */}
-      <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-            مالی رپورٹ و منافع (Financial Summary)
-          </span>
-          <span className="text-[11px] text-slate-500">لائیو اعداد و شمار</span>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Today's Sales */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">آج کی کل سیل (Sales)</span>
-              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
-                {todaySales.length} بل
-              </span>
-            </div>
-            <div className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white font-mono">
-              {formatCurrency(todaySalesTotal, currency)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              کیش وصولی: {formatCurrency(todayCashSales, currency)}
-            </div>
-          </div>
-
-          {/* Gross Profit */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">مجموعی منافع (Gross)</span>
-              <span className="text-emerald-500 text-xs font-bold">
-                {todaySalesTotal > 0 ? `${Math.round((todayGrossProfit / todaySalesTotal) * 100)}%` : '0%'}
-              </span>
-            </div>
-            <div className="text-lg sm:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-              {formatCurrency(todayGrossProfit, currency)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              مال کی لاگت: {formatCurrency(todayCostOfGoods, currency)}
-            </div>
-          </div>
-
-          {/* Expenses */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">آج کے اخراجات (Expenses)</span>
-              <span className="text-rose-500 text-xs font-bold">{todayExpenses.length} انٹری</span>
-            </div>
-            <div className="text-lg sm:text-xl font-extrabold text-rose-600 dark:text-rose-400 font-mono">
-              {formatCurrency(todayExpensesTotal, currency)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              دکان بل و کرایہ
-            </div>
-          </div>
-
-          {/* Net Profit */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-4 shadow-xs border border-slate-700/60">
-            <div className="flex items-center justify-between text-slate-300 mb-1">
-              <span className="text-xs font-medium">خالص منافع (Net Profit)</span>
-              <span className="text-sky-400 text-xs font-bold">خرچے نکال کر</span>
-            </div>
-            <div className={`text-lg sm:text-xl font-extrabold font-mono ${todayNetProfit >= 0 ? 'text-sky-300' : 'text-rose-400'}`}>
-              {formatCurrency(todayNetProfit, currency)}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              منافع - دکان خرچہ
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SECONDARY KPIS: STOCK & BALANCES */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div
-          onClick={() => setActiveTab('stock')}
-          className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 hover:border-sky-500/50 transition-colors"
-        >
-          <span className="text-xs text-slate-500">کل اسٹاک مالیت (Stock)</span>
-          <div className="text-base font-bold text-slate-900 dark:text-white font-mono mt-0.5">
-            {formatCurrency(inventoryCostValue, currency)}
-          </div>
-          <span className="text-[11px] text-sky-600 font-medium">
-            {products.length} آئل و فلٹر درج ہیں
-          </span>
-        </div>
-
-        <div
-          onClick={() => setActiveTab('customers')}
-          className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 hover:border-amber-500/50 transition-colors"
-        >
-          <span className="text-xs text-slate-500">گاہکوں سے لینا ہے (Udhar)</span>
-          <div className="text-base font-bold text-amber-600 dark:text-amber-400 font-mono mt-0.5">
-            {formatCurrency(totalReceivables, currency)}
-          </div>
-          <span className="text-[11px] text-slate-500">
-            {customersWhoOwe.length} گاہکوں کے ذمے بقایا
-          </span>
-        </div>
-
-        <div
-          onClick={() => setActiveTab('suppliers')}
-          className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 hover:border-indigo-500/50 transition-colors"
-        >
-          <span className="text-xs text-slate-500">کمپنی کو دینا ہے (Payable)</span>
-          <div className="text-base font-bold text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">
-            {formatCurrency(totalPayables, currency)}
-          </div>
-          <span className="text-[11px] text-slate-500">
-            {suppliersWeOwe.length} سپلائرز کا بل
-          </span>
-        </div>
-
-        <div
-          onClick={() => setActiveTab('stock')}
-          className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 hover:border-rose-500/50 transition-colors"
-        >
-          <span className="text-xs text-slate-500">کم اسٹاک الرٹ (Low Stock)</span>
-          <div className={`text-base font-bold font-mono mt-0.5 ${lowStockCount + outOfStockCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600'}`}>
-            {lowStockCount + outOfStockCount} آئٹمز
-          </div>
-          <span className="text-[11px] text-slate-500">
-            {outOfStockCount > 0 ? `${outOfStockCount} ختم ہو چکے ہیں` : 'اسٹاک تسلی بخش ہے'}
-          </span>
-        </div>
-      </div>
-
-      {/* RECENT SALES & QUICK INVOICES */}
+      {/* RECENT SALES TRANSACTIONS */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-              حالیہ فروخت و بل (Recent Sales Bills)
+              Recent Sales Transactions
             </h3>
-            <p className="text-xs text-slate-500">آخری بل اور انوائس پرنٹ کریں</p>
+            <p className="text-xs text-slate-500">View and print invoices</p>
           </div>
           <button
             onClick={() => setActiveTab('reports')}
             className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline"
           >
-            تمام رپورٹس دیکھیں →
+            View All Reports →
           </button>
         </div>
 
         {sales.length === 0 ? (
           <div className="py-8 text-center text-slate-400 text-xs">
-            ابھی تک کوئی سیل نہیں ہوئی۔ اوپر دیے گئے <strong>"نئی سیل"</strong> کے بٹن سے پہلا بل بنائیں۔
+            No sales recorded yet. Tap <strong>"New Sale"</strong> above to make your first transaction.
           </div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -719,17 +735,17 @@ export const DashboardView: React.FC = () => {
                       {sale.customerName}
                     </span>
                     {sale.balanceAmount > 0 ? (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-50 dark:bg-rose-950/50 text-rose-600 font-bold border border-rose-200 dark:border-rose-900">
-                        ادھار: {formatCurrency(sale.balanceAmount, currency)}
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/50 text-rose-600 font-bold border border-rose-200 dark:border-rose-900">
+                        Due: {formatCurrency(sale.balanceAmount, currency)}
                       </span>
                     ) : (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 font-bold">
-                        نقد وصول (Paid)
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 font-bold">
+                        Paid in Full
                       </span>
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {sale.items.length} آئٹمز · {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {sale.items.length} Items · {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {sale.paymentMethod}
                   </p>
                 </div>
 
@@ -739,7 +755,7 @@ export const DashboardView: React.FC = () => {
                       {formatCurrency(sale.grandTotal, currency)}
                     </div>
                     <div className="text-[10px] text-emerald-600 font-medium">
-                      منافع: {formatCurrency(sale.totalProfit, currency)}
+                      Profit: +{formatCurrency(sale.totalProfit, currency)}
                     </div>
                   </div>
 
@@ -747,7 +763,7 @@ export const DashboardView: React.FC = () => {
                     onClick={() => openInvoiceModal(sale)}
                     className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors whitespace-nowrap"
                   >
-                    بل دیکھیں / پرنٹ
+                    View Invoice
                   </button>
                 </div>
               </div>
@@ -756,26 +772,26 @@ export const DashboardView: React.FC = () => {
         )}
       </div>
 
-      {/* FAST STOCK AVAILABILITY CHECK */}
+      {/* QUICK INVENTORY STATUS */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-              موجودہ آئل اسٹاک (Oil Inventory Status)
+              Inventory Stock Levels
             </h3>
-            <p className="text-xs text-slate-500">ریٹ اور دستیاب کاٹن و بوتلیں</p>
+            <p className="text-xs text-slate-500">Available oil products & stock counts</p>
           </div>
           <button
             onClick={() => setActiveTab('products')}
             className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline"
           >
-            تمام پراڈکٹس ({products.length}) →
+            All Products ({products.length}) →
           </button>
         </div>
 
         {products.length === 0 ? (
           <div className="py-8 text-center text-slate-400 text-xs">
-            کوئی پراڈکٹ درج نہیں ہے۔ <strong>"نیا آئل"</strong> پر کلک کر کے پہلا آئل رجسٹر کریں۔
+            No products registered. Tap <strong>"Products"</strong> to add your first stock item.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -789,7 +805,7 @@ export const DashboardView: React.FC = () => {
                     {prod.name}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
-                    ریٹ: {formatCurrency(prod.saleRate, currency)} / {prod.baseUnit}
+                    Price: {formatCurrency(prod.saleRate, currency)} / {prod.baseUnit}
                   </div>
                 </div>
                 <div className="text-right shrink-0">

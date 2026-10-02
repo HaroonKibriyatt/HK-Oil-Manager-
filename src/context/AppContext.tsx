@@ -47,8 +47,10 @@ interface AppContextType {
   updateSettings: (newSettings: Partial<BusinessSettings>) => Promise<void>;
   resetToCleanData: () => Promise<void>;
   
-  // Security PIN
+  // Security & Authentication
   isLocked: boolean;
+  login: (user: string, pass: string, rememberMe?: boolean) => boolean;
+  logout: () => void;
   unlockWithPin: (pin: string) => boolean;
   lockApp: () => void;
   
@@ -148,7 +150,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const currentSettings = stngs || defaultSettings;
       setSettingsState(currentSettings);
 
-      if (currentSettings.isPinAuthEnabled && !safeStorage.getItem('lubeflow_unlocked')) {
+      if (!safeStorage.getItem('hkoil_logged_in')) {
         setIsLocked(true);
       }
     } catch (err) {
@@ -200,11 +202,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await clearAllData();
       await refreshAllData();
-      showToast('تمام ریکارڈز مکمل صاف کر دیے گئے۔ اب آپ اپنا ڈیٹا درج کر سکتے ہیں!', 'success');
+      showToast('All database records cleared successfully. Clean slate ready.', 'success');
     } catch (e) {
       showToast('Failed to reset database', 'error');
     }
   }, [refreshAllData, showToast]);
+
+  // Handle Login verification (PRD Section 4 & 35)
+  const login = useCallback(
+    (enteredUser: string, enteredPass: string, rememberMe: boolean = true): boolean => {
+      const validUser = settings?.adminUsername || 'admin';
+      const validPass = settings?.adminPassword || 'admin123';
+
+      if (
+        enteredUser.trim().toLowerCase() === validUser.toLowerCase() &&
+        enteredPass === validPass
+      ) {
+        safeStorage.setItem('hkoil_logged_in', 'true');
+        if (rememberMe) {
+          safeStorage.setItem('hkoil_remembered_username', enteredUser.trim());
+        }
+        setIsLocked(false);
+        showToast('Welcome to HK OIL MANAGER!', 'success');
+        return true;
+      }
+      return false;
+    },
+    [settings, showToast]
+  );
+
+  const logout = useCallback(() => {
+    safeStorage.removeItem('hkoil_logged_in');
+    setIsLocked(true);
+    showToast('Logged out successfully', 'info');
+  }, [showToast]);
 
   // Handle PIN verification
   const unlockWithPin = useCallback(
@@ -214,7 +245,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return true;
       }
       if (enteredPin === settings.pinCode || enteredPin === '1234') {
-        safeStorage.setItem('lubeflow_unlocked', 'true');
+        safeStorage.setItem('hkoil_logged_in', 'true');
         setIsLocked(false);
         showToast('Welcome back! App unlocked.', 'success');
         return true;
@@ -226,7 +257,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 
   const lockApp = useCallback(() => {
-    safeStorage.removeItem('lubeflow_unlocked');
+    safeStorage.removeItem('hkoil_logged_in');
     setIsLocked(true);
   }, []);
 
@@ -326,6 +357,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateSettings,
         resetToCleanData,
         isLocked,
+        login,
+        logout,
         unlockWithPin,
         lockApp,
         isScannerOpen,

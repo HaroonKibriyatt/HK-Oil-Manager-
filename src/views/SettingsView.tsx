@@ -40,6 +40,7 @@ export const SettingsView: React.FC = () => {
   const [newPin, setNewPin] = useState(settings.pinCode);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +66,7 @@ export const SettingsView: React.FC = () => {
         isPinAuthEnabled,
         pinCode: newPin,
       });
-      showToast('Settings saved successfully! (ترتیبات محفوظ ہو گئیں)', 'success');
+      showToast('Settings saved successfully!', 'success');
     } catch (err: any) {
       showToast('Failed to save settings', 'error');
     } finally {
@@ -81,7 +82,7 @@ export const SettingsView: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `LubeFlowPro_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `HK_OIL_MANAGER_Backup_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       showToast('Database backup downloaded successfully', 'success');
@@ -98,18 +99,12 @@ export const SettingsView: React.FC = () => {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const content = event.target?.result as string;
-      if (
-        window.confirm(
-          'Restoring this backup will replace current local database records with the backup file data. Continue?'
-        )
-      ) {
-        try {
-          await importDatabaseBackup(content);
-          showToast('Database restored successfully!', 'success');
-          await refreshAllData();
-        } catch (err: any) {
-          showToast(err.message || 'Failed to restore backup', 'error');
-        }
+      try {
+        await importDatabaseBackup(content);
+        showToast('Database restored successfully!', 'success');
+        await refreshAllData();
+      } catch (err: any) {
+        showToast(err.message || 'Failed to restore backup', 'error');
       }
     };
     reader.readAsText(file);
@@ -117,29 +112,16 @@ export const SettingsView: React.FC = () => {
 
   // Reset to Demo Data
   const handleResetDemoData = async () => {
-    if (
-      window.confirm(
-        'Reset to initial sample demo data? Any existing custom records will be replaced.'
-      )
-    ) {
-      await clearAllDatabaseData();
-      await seedInitialDemoData();
-      await refreshAllData();
-      showToast('Demo data reloaded successfully', 'success');
-    }
+    await clearAllDatabaseData();
+    await seedInitialDemoData();
+    await refreshAllData();
+    showToast('Data refreshed successfully', 'success');
   };
 
   // Clear All Data
   const handleClearAllData = async () => {
-    if (
-      window.confirm(
-        '⚠️ DANGER: This will permanently delete ALL products, sales, purchases, customers, and history. Are you sure?'
-      )
-    ) {
-      await clearAllDatabaseData();
-      await refreshAllData();
-      showToast('Database cleared. Clean slate ready.', 'info');
-    }
+    await resetToCleanData();
+    setShowClearConfirm(false);
   };
 
   return (
@@ -268,7 +250,7 @@ export const SettingsView: React.FC = () => {
           <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
             <span className="text-lg">🚨</span>
             <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-              2. Weekend Payment & Due Alert (ہفتہ وار ادھار وصولی الرٹ)
+              2. Weekend Payment & Due Clearance Alert
             </h3>
           </div>
 
@@ -281,27 +263,27 @@ export const SettingsView: React.FC = () => {
                 className="w-4 h-4 rounded text-sky-600"
               />
               <span className="font-semibold text-slate-800 dark:text-slate-200">
-                Enable Weekend Payment Due Alert (ہفتہ وار ادائیگی و وصولی الرٹ فعال کریں)
+                Enable Weekend Payment Due Alert
               </span>
             </label>
 
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Select Alert Day / ویک اینڈ کا دن منتخب کریں:
+                Select Alert Day:
               </label>
               <select
                 value={weekendAlertDay}
                 onChange={(e) => setWeekendAlertDay(e.target.value)}
                 className="max-w-xs w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-900 dark:text-white"
               >
-                <option value="Saturday">ہفتہ (Saturday)</option>
-                <option value="Sunday">اتوار (Sunday)</option>
-                <option value="Friday">جمعہ (Friday)</option>
-                <option value="Thursday">جمعرات (Thursday)</option>
-                <option value="Monday">پیر (Monday)</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+                <option value="Friday">Friday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Monday">Monday</option>
               </select>
               <p className="text-[11px] text-slate-500 mt-1">
-                اس مقررہ دن پر ڈیش بورڈ پر تمام گاہکوں سے رقم وصول کرنے اور سپلائرز کو ادائیگی کا الرٹ شو ہو گا۔
+                On this day, the dashboard will highlight pending customer receivables and supplier payables.
               </p>
             </div>
           </div>
@@ -442,23 +424,39 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Demo Data & Danger Area */}
+        {/* Danger Area & Clean Start */}
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <button
-            type="button"
-            onClick={handleResetDemoData}
-            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 font-semibold underline"
-          >
-            Reset Demo Oil & Filter Data
-          </button>
+          <p className="text-slate-500 text-[11px]">
+            Permanently erase all local records to start with a fresh clean database.
+          </p>
 
-          <button
-            type="button"
-            onClick={handleClearAllData}
-            className="text-rose-600 hover:text-rose-700 font-bold"
-          >
-            Clear Entire Database (Production Reset)
-          </button>
+          {!showClearConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(true)}
+              className="px-3.5 py-2 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 rounded-xl font-bold border border-rose-200 dark:border-rose-900 transition-colors"
+            >
+              🗑️ Clear Entire Database (Clean Reset)
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 animate-in fade-in">
+              <span className="font-bold text-rose-600">Are you sure you want to delete all data?</span>
+              <button
+                type="button"
+                onClick={handleClearAllData}
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-extrabold shadow-sm"
+              >
+                Yes, Delete All
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

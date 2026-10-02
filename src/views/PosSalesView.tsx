@@ -42,6 +42,10 @@ export const PosSalesView: React.FC = () => {
   const [newCustName, setNewCustName] = useState('');
   const [newCustPhone, setNewCustPhone] = useState('');
 
+  // Barcode scanned product quick-add modal (PRD Section 10)
+  const [barcodeModalProduct, setBarcodeModalProduct] = useState<Product | null>(null);
+  const [barcodeModalQty, setBarcodeModalQty] = useState<number>(1);
+
   // Auto-add product if navigated from Barcode Scanner or Quick Trigger
   useEffect(() => {
     if (quickPosProduct) {
@@ -274,16 +278,44 @@ export const PosSalesView: React.FC = () => {
     }
   };
 
+  // Barcode Scanning Quick Add Flow (PRD Section 10)
+  const handleScanForPos = () => {
+    openBarcodeScanner((code) => {
+      const trimmed = code.trim();
+      const found = products.find(
+        (p) => (p.barcode && p.barcode === trimmed) || (p.sku && p.sku.toLowerCase() === trimmed.toLowerCase())
+      );
+      if (found) {
+        setBarcodeModalProduct(found);
+        setBarcodeModalQty(1);
+      } else {
+        setSearchTerm(trimmed);
+        showToast(`Scanned: ${trimmed} (Search filter applied)`, 'info');
+      }
+    });
+  };
+
+  const handleConfirmBarcodeAdd = () => {
+    if (!barcodeModalProduct) return;
+    const qtyToAdd = barcodeModalQty;
+    for (let i = 0; i < qtyToAdd; i++) {
+      addProductToCart(barcodeModalProduct);
+    }
+    showToast(`Added ${qtyToAdd}x ${barcodeModalProduct.name} to sale`, 'success');
+    setBarcodeModalProduct(null);
+    setBarcodeModalQty(1);
+  };
+
   const categories: { id: string; label: string; gradeFilter?: string }[] = [
-    { id: 'ALL', label: 'All Oils (تمام)' },
+    { id: 'ALL', label: 'All Products' },
     { id: '20W-50', label: '20W-50' },
     { id: '10W-40', label: '10W-40' },
     { id: '5W-30', label: '5W-30' },
     { id: '0W-20', label: '0W-20' },
     { id: '15W-40', label: 'Diesel 15W-40' },
-    { id: 'Filter', label: 'Filters (فلٹر)' },
+    { id: 'Filter', label: 'Filters' },
     { id: 'Gear', label: 'Gear / ATF' },
-    { id: 'Cotton', label: 'Cotton Pkg (پیٹی)' },
+    { id: 'Cotton', label: 'Cotton Pkg' },
   ];
 
   // Grade filter state
@@ -335,7 +367,7 @@ export const PosSalesView: React.FC = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search oil, brand, barcode, SKU (تلاش کریں)..."
+                placeholder="Search oil, brand, barcode, SKU..."
                 className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-xs text-slate-900 dark:text-white"
               />
               {searchTerm && (
@@ -349,16 +381,12 @@ export const PosSalesView: React.FC = () => {
             </div>
 
             <button
-              onClick={() =>
-                openBarcodeScanner((code) => {
-                  setSearchTerm(code);
-                })
-              }
+              onClick={handleScanForPos}
               className="px-3.5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 shrink-0"
-              title="Scan QR or Barcode"
+              title="Scan QR or Barcode to Add Product"
             >
               <span>📷</span>
-              <span className="hidden xs:inline">QR / Barcode</span>
+              <span className="hidden xs:inline">Scan</span>
             </button>
           </div>
 
@@ -664,7 +692,7 @@ export const PosSalesView: React.FC = () => {
             {/* Quick Cash Tender Notes */}
             <div className="space-y-1.5">
               <span className="text-[10px] text-slate-500 font-semibold uppercase block">
-                Quick Cash / نوٹ کا انتخاب:
+                Quick Cash Tender:
               </span>
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
                 <button
@@ -703,7 +731,7 @@ export const PosSalesView: React.FC = () => {
                   }}
                   className="px-2 py-1 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-semibold rounded-lg border border-rose-200 dark:border-rose-900 text-[11px] whitespace-nowrap"
                 >
-                  Full Udhar (ادھار)
+                  Full Credit
                 </button>
               </div>
             </div>
@@ -712,7 +740,7 @@ export const PosSalesView: React.FC = () => {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <label className="block text-[11px] text-slate-500 font-medium mb-1">
-                  Paid Amount (وصول رقم):
+                  Paid Amount:
                 </label>
                 <input
                   type="number"
@@ -725,7 +753,7 @@ export const PosSalesView: React.FC = () => {
 
               <div>
                 <label className="block text-[11px] text-slate-500 font-medium mb-1">
-                  Remaining Udhar (باقی کھاتہ):
+                  Remaining Balance:
                 </label>
                 <div
                   className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border ${
@@ -739,12 +767,12 @@ export const PosSalesView: React.FC = () => {
               </div>
             </div>
 
-            {/* Change to Return Notice (بقایا رقم) */}
+            {/* Change to Return Notice */}
             {parseFloat(paidAmountInput || '0') > cartGrandTotal && (
               <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between text-xs animate-in fade-in">
                 <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                   <span>💵</span>
-                  <span>Change Return (بقایا رقم واپس کریں):</span>
+                  <span>Change to Return:</span>
                 </span>
                 <span className="font-mono font-extrabold text-sm text-emerald-700 dark:text-emerald-300">
                   {formatCurrency(roundToTwo(parseFloat(paidAmountInput) - cartGrandTotal), currency)}
@@ -784,6 +812,108 @@ export const PosSalesView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* SECTION 10: BARCODE SALES QUICK-ADD MODAL */}
+      {barcodeModalProduct && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider">
+                Scanned Product Found
+              </span>
+              <button
+                type="button"
+                onClick={() => setBarcodeModalProduct(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 flex items-center justify-center text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 border overflow-hidden flex items-center justify-center shrink-0">
+                {barcodeModalProduct.imageBase64 ? (
+                  <img
+                    src={barcodeModalProduct.imageBase64}
+                    alt={barcodeModalProduct.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl">🛢️</span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {barcodeModalProduct.name}
+                </h4>
+                <p className="text-[11px] text-slate-500 font-mono">
+                  Barcode: {barcodeModalProduct.barcode || 'N/A'}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-extrabold text-emerald-600 font-mono">
+                    {formatCurrency(barcodeModalProduct.saleRate, currency)}
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    Stock: {barcodeModalProduct.currentStock} {barcodeModalProduct.baseUnit}s
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quantity Selector [-] [qty] [+] */}
+            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                Quantity:
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setBarcodeModalQty((q) => Math.max(1, q - 1))}
+                  className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 border text-slate-700 dark:text-white font-bold text-sm flex items-center justify-center active:scale-95 shadow-2xs"
+                >
+                  -
+                </button>
+                <span className="font-mono font-extrabold text-base text-slate-900 dark:text-white w-6 text-center">
+                  {barcodeModalQty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBarcodeModalQty((q) => {
+                      if (!settings.allowNegativeStock && q >= barcodeModalProduct.currentStock) {
+                        showToast(`Maximum available stock: ${barcodeModalProduct.currentStock}`, 'error');
+                        return q;
+                      }
+                      return q + 1;
+                    })
+                  }
+                  className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 border text-slate-700 dark:text-white font-bold text-sm flex items-center justify-center active:scale-95 shadow-2xs"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Subtotal */}
+            <div className="flex items-center justify-between text-xs px-1">
+              <span className="text-slate-500 font-medium">Subtotal:</span>
+              <span className="font-mono font-extrabold text-slate-900 dark:text-white text-sm">
+                {formatCurrency(barcodeModalProduct.saleRate * barcodeModalQty, currency)}
+              </span>
+            </div>
+
+            {/* Action Button: [ ADD TO SALE ] */}
+            <button
+              type="button"
+              onClick={handleConfirmBarcodeAdd}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center gap-1.5"
+            >
+              <span>ADD TO SALE</span>
+              <span>➔</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

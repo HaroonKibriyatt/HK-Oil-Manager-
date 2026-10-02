@@ -338,13 +338,23 @@ export const PurchasesView: React.FC = () => {
                     type="button"
                     onClick={() =>
                       openBarcodeScanner((code) => {
-                        setProdSearch(code);
+                        const trimmed = code.trim();
+                        const found = products.find(
+                          (p) => (p.barcode && p.barcode === trimmed) || (p.sku && p.sku.toLowerCase() === trimmed.toLowerCase())
+                        );
+                        if (found) {
+                          addItemToPurchase(found);
+                          showToast(`Added ${found.name} to purchase order`, 'success');
+                        } else {
+                          setProdSearch(trimmed);
+                          showToast(`Scanned: ${trimmed}`, 'info');
+                        }
                       })
                     }
-                    className="text-xs text-sky-600 font-bold flex items-center gap-1"
+                    className="text-xs text-sky-600 font-bold flex items-center gap-1 hover:text-sky-700"
                   >
                     <span>📷</span>
-                    <span>Scan Product Barcode</span>
+                    <span>Scan Barcode</span>
                   </button>
                 </div>
 

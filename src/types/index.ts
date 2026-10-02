@@ -277,11 +277,15 @@ export interface BusinessSettings {
   autoLockMinutes: number;
   pinCode: string; // 4 or 6 digit PIN
   isPinAuthEnabled: boolean;
+  adminUsername?: string;
+  adminPassword?: string;
+  isAuthEnabled?: boolean;
+  rememberMeUsername?: string;
   isSetupCompleted: boolean;
   lastBackupDate?: string;
   weekendAlertDay: string; // e.g. 'Saturday', 'Sunday', 'Friday'
   weekendAlertEnabled: boolean;
-  language: 'en' | 'ur';
+  language: 'en';
   theme: 'light' | 'dark';
 }
 

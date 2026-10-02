@@ -330,8 +330,23 @@ export const ProductsView: React.FC = () => {
       {/* Product List Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.length === 0 ? (
-          <div className="col-span-full py-16 text-center text-slate-400 text-xs">
-            No products found matching your search. Tap "+ Add Product" to create one.
+          <div className="col-span-full py-14 flex flex-col items-center justify-center text-center p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+            <div className="w-14 h-14 rounded-2xl bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center text-2xl mb-3">
+              🛢️
+            </div>
+            <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mb-1">
+              No Products Found
+            </h3>
+            <p className="text-xs text-slate-500 max-w-sm mb-4">
+              Add your first engine oil, gallon, bottle, or filter to start managing inventory and sales.
+            </p>
+            <button
+              onClick={() => openNewProductModal()}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+            >
+              <span>+</span>
+              <span>Add First Product</span>
+            </button>
           </div>
         ) : (
           filtered.map((prod) => {
@@ -469,34 +484,57 @@ export const ProductsView: React.FC = () => {
             <form onSubmit={handleSaveProduct} className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Product Photo & Barcode Fast Scan */}
               <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                {/* Image Picker */}
-                <div className="relative group shrink-0">
-                  <div className="w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 overflow-hidden flex flex-col items-center justify-center text-center p-1">
-                    {imageBase64 ? (
-                      <img src={imageBase64} alt="Product" className="w-full h-full object-cover" />
-                    ) : (
-                      <>
-                        <span className="text-2xl mb-1">📷</span>
-                        <span className="text-[10px] text-slate-400">Add Photo</span>
-                      </>
+                {/* Image Preview & Pickers (PRD Section 8: Camera & Gallery) */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 overflow-hidden flex flex-col items-center justify-center text-center p-1">
+                      {imageBase64 ? (
+                        <img src={imageBase64} alt="Product" className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <span className="text-2xl mb-1">🛢️</span>
+                          <span className="text-[10px] text-slate-400">No Image</span>
+                        </>
+                      )}
+                    </div>
+                    {imageBase64 && (
+                      <button
+                        type="button"
+                        onClick={() => setImageBase64(undefined)}
+                        className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center shadow-md"
+                        title="Remove Image"
+                      >
+                        ✕
+                      </button>
                     )}
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    title="Upload or take photo"
-                  />
-                  {imageBase64 && (
-                    <button
-                      type="button"
-                      onClick={() => setImageBase64(undefined)}
-                      className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center shadow-md"
-                    >
-                      ✕
-                    </button>
-                  )}
+
+                  <div className="flex flex-col gap-1.5">
+                    {/* Camera Button */}
+                    <label className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all text-center justify-center">
+                      <span>📷</span>
+                      <span>Camera</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* Gallery Button */}
+                    <label className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all text-center justify-center">
+                      <span>🖼️</span>
+                      <span>Gallery</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 {/* Barcode scanner action */}

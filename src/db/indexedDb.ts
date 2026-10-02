@@ -206,17 +206,17 @@ export function getDB(): Promise<IDBPDatabase<OilPosDB>> {
 }
 
 export const defaultSettings: BusinessSettings = {
-  businessName: 'Al-Madina Oil Traders & Auto Care',
-  tagline: 'Wholesale & Retail Engine Oil, Lubricants & Filters',
+  businessName: 'HK OIL MANAGER',
+  tagline: 'Oil & Inventory Management',
   phone: '+92 300 1234567',
   whatsapp: '+92 300 1234567',
-  address: 'Shop # 12, Main Auto Market, Circular Road, Lahore',
-  email: 'info@almadinaoil.com',
+  address: 'Auto Market, Pakistan',
+  email: 'admin@hkoilmanager.com',
   currency: 'PKR',
   currencySymbol: 'Rs.',
-  invoicePrefix: 'SALE-',
+  invoicePrefix: 'INV-',
   purchasePrefix: 'PUR-',
-  invoiceFooterNote: 'Thank you for your business! Warranty valid with original bill.',
+  invoiceFooterNote: 'Thank you for your business! Warranty valid with original invoice - HK OIL MANAGER',
   taxEnabled: false,
   taxRatePercent: 0,
   allowNegativeStock: false,
@@ -224,6 +224,9 @@ export const defaultSettings: BusinessSettings = {
   autoLockMinutes: 0, // 0 = disabled
   pinCode: '1234',
   isPinAuthEnabled: false,
+  adminUsername: 'admin',
+  adminPassword: 'admin123',
+  isAuthEnabled: true,
   isSetupCompleted: true,
   weekendAlertDay: 'Saturday',
   weekendAlertEnabled: true,
@@ -1157,6 +1160,8 @@ export async function clearAllDatabaseData(): Promise<void> {
 
   await tx.done;
 }
+
+export const clearAllData = clearAllDatabaseData;
 
 // ----------------- SEED INITIAL DEMO DATA -----------------
 // Fresh installation starts completely empty so the shopkeeper adds their own catalog and entries.
